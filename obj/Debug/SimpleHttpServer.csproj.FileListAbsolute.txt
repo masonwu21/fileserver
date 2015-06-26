@@ -1,0 +1,6 @@
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\bin\Debug\SimpleHttpServer.exe.config
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\bin\Debug\SimpleHttpServer.exe
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\bin\Debug\SimpleHttpServer.pdb
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\obj\Debug\SimpleHttpServer.csprojResolveAssemblyReference.cache
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\obj\Debug\SimpleHttpServer.exe
+C:\Users\Mason\Desktop\SimpleHttpServer-master\SimpleHttpServer-master\obj\Debug\SimpleHttpServer.pdb
