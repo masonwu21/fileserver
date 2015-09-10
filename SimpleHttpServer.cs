@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Web;
 
 // offered to the public domain for any use with no restriction
 // and also with no warranty of any kind, please enjoy. - David Jeske. 
@@ -53,22 +54,33 @@ namespace Bend.Util {
 
             // we probably shouldn't be using a streamwriter for all output from handlers either
             outputStream = new StreamWriter(new BufferedStream(socket.GetStream()));
-            try {
+            try
+            {
                 parseRequest();
                 readHeaders();
-                if (http_method.Equals("GET")) {
+                if (http_method.Equals("GET"))
+                {
                     handleGETRequest();
-                } else if (http_method.Equals("POST")) {
+                }
+                else if (http_method.Equals("POST"))
+                {
                     handlePOSTRequest();
                 }
-            } catch (Exception e) {
+
+                outputStream.Flush();
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine("Exception: " + e.ToString());
                 writeFailure();
             }
-            outputStream.Flush();
-            // bs.Flush(); // flush any remaining output
-            inputStream = null; outputStream = null; // bs = null;            
-            socket.Close();             
+            finally {
+
+                // bs.Flush(); // flush any remaining output
+                inputStream = null; outputStream = null; // bs = null;            
+                socket.Close();
+            }
+            
         }
 
         public void parseRequest() {
@@ -218,6 +230,116 @@ namespace Bend.Util {
         public MyHttpServer(int port)
             : base(port) {
         }
+
+        public static uint GetLongTime(DateTime time)
+        {
+            DateTime time197011 = new DateTime(1970, 1, 1);
+            //DateTime time = DateTime.Now;
+            TimeSpan ts = time - time197011;
+            TimeZone localZone = TimeZone.CurrentTimeZone;
+            TimeSpan off = localZone.GetUtcOffset(time);
+            ts -= off;
+
+            return (uint)ts.TotalSeconds;
+        }
+
+        public static DateTime ConverToTime(int time)
+        {
+            DateTime time197011 = new DateTime(1970, 1, 1);
+            time197011 = time197011.AddSeconds(time);
+            TimeZone localZone = TimeZone.CurrentTimeZone;
+            TimeSpan ts = localZone.GetUtcOffset(time197011);
+            time197011 += ts;
+
+            return time197011;
+        }
+
+        char[] root_key = { 'U', 'V', 'W', 'X', 'a', 'b', 'c', 'd' };
+        void encrypt_group(byte[] inarray, out byte[] outarray, byte key)
+        {
+            int i;
+            outarray = new byte[8];
+            for (i = 0; i < 7; i++)
+            {
+                outarray[i] = (byte)(inarray[i] ^ key);
+            }
+            outarray[7] = key;
+
+        }
+
+        void encrypt(byte[] inarray, out byte[] outarray, int size)
+        {
+            int i;
+            int n = (size / 8 + 1);
+            outarray = new byte[256];
+            for (i = 0; i < n; i++)
+            {
+                int j = i % 8;
+                byte new_key = (byte)(root_key[j] ^ inarray[i * 8 + 7]);
+                byte[] f = new byte[8];
+                Array.Copy(inarray, i * 8, f, 0, 8);
+                byte[] e = new byte[8];
+
+
+                encrypt_group(f, out e, new_key);
+                Array.Copy(e, 0, outarray, i * 8, 8);
+            }
+        }
+        void decrypt_group(byte[] inarray, out byte[] outarray)
+        {
+            int i;
+            outarray = new byte[8];
+            for (i = 0; i < 7; i++)
+            {
+                outarray[i] = (byte)(inarray[i] ^ inarray[7]);
+            }
+        }
+
+        void decrypt(byte[] inarray, out byte[] outarray, int size)
+        {
+            int i;
+            int n = (size / 8 + 1);
+            outarray = new byte[256];
+            for (i = 0; i < n; i++)
+            {
+                int j = i % 8;
+                byte[] f = new byte[8];
+                Array.Copy(inarray, i * 8, f, 0, 8);
+                byte[] e = new byte[8];
+
+                decrypt_group(f, out e);
+                Array.Copy(e, 0, outarray, i * 8, 8);
+
+                outarray[i * 8 + 7] = (byte)(root_key[j] ^ inarray[i * 8 + 7]);
+            }
+        }
+
+        private string GenKey()
+        {
+
+
+            //string str ="1430875657";
+            string str = GetLongTime(DateTime.Now).ToString();
+            byte[] dd = System.Text.Encoding.UTF8.GetBytes(str);
+
+            byte[] ff = new byte[256];
+            Array.Copy(dd, ff, dd.Length);
+            byte[] ee = new byte[256];
+            //RWPS[TVccaVVVVVV      1430875657
+
+            encrypt(ff, out ee, dd.Length);
+            string strresult = System.Text.Encoding.UTF8.GetString(ee);
+            strresult = strresult.Replace("\0", "");
+            byte[] cc = System.Text.Encoding.UTF8.GetBytes(strresult);
+            Array.Copy(cc, ff, cc.Length);
+            Array.Clear(ee, 0, ee.Length);
+            decrypt(ff, out ee, cc.Length);
+            string strroriginal = System.Text.Encoding.UTF8.GetString(ee);
+            strroriginal = strroriginal.Substring(0, 10);
+            strresult = HttpUtility.UrlEncode(strresult, System.Text.Encoding.UTF8);
+            return strresult;
+        }
+
         public override void handleGETRequest (HttpProcessor p)
 		{
 
@@ -233,10 +355,20 @@ namespace Bend.Util {
 			}
 
             
-			if (p.http_url.Equals ("/m3u8")) {
-				Stream fs = File.Open("../../m3u8",FileMode.Open);
+			if (p.http_url.StartsWith ("/m3u8")) {
+                string path = "http://scgd-m3u8.joyseetv.com:10009/";
+                path += p.http_url;
+                path += GenKey();
+                // The downloaded resource ends up in the variable named content.
+          
+                // Initialize an HttpWebRequest for the current URL.
+                var webReq = (HttpWebRequest)WebRequest.Create(path);
 
-                p.writeSuccess("application/vnd.apple.mpegurl", fs.Length);
+                webReq.UserAgent = "Android/TVPlayerSDK/1.0";
+                WebResponse response = webReq.GetResponse();
+                Stream fs = webReq.GetResponse().GetResponseStream();
+
+                p.writeSuccess("application/vnd.apple.mpegurl", response.ContentLength);
                 p.outputStream.Flush();
 				fs.CopyTo (p.outputStream.BaseStream);
 				p.outputStream.BaseStream.Flush ();
