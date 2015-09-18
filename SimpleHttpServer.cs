@@ -340,6 +340,10 @@ namespace Bend.Util {
             return strresult;
         }
 
+        DateTime lastQueryTime=DateTime.MinValue;
+        byte[] copyfsbytes=new byte[5000];
+        long length = 0;
+        string pid = "";
         public override void handleGETRequest (HttpProcessor p)
 		{
 
@@ -356,17 +360,46 @@ namespace Bend.Util {
 
             
 			if (p.http_url.StartsWith ("/m3u8")) {
-                string path = "http://scgd-m3u8.joyseetv.com:10009/";
+                string path = "http://scgd-m3u8.joyseetv.com:10009";
                 path += p.http_url;
                 path += GenKey();
+
+
+
+                if (p.http_url == pid && DateTime.Now.Subtract(lastQueryTime).TotalSeconds < 10)
+                    {
+                        p.writeSuccess("application/vnd.apple.mpegurl", length);
+                        p.outputStream.Flush();
+                        Stream fs2= new MemoryStream(copyfsbytes, 0, (int)length);
+                        fs2.CopyTo(p.outputStream.BaseStream);
+                        p.outputStream.BaseStream.Flush();
+                    fs2.Close();
+                    
+                    Console.WriteLine("1:"+lastQueryTime + DateTime.Now);
+                    return;
+                }
+                else
+                {
+                    copyfsbytes = new byte[5000];
+
+                }
+
+
+                    pid = p.http_url;
+                    lastQueryTime = DateTime.Now;
+                    Console.WriteLine("2:" + lastQueryTime + DateTime.Now);
+
                 // The downloaded resource ends up in the variable named content.
-          
+
                 // Initialize an HttpWebRequest for the current URL.
                 var webReq = (HttpWebRequest)WebRequest.Create(path);
 
                 webReq.UserAgent = "Android/TVPlayerSDK/1.0";
                 WebResponse response = webReq.GetResponse();
                 Stream fs = webReq.GetResponse().GetResponseStream();
+                fs.Read(copyfsbytes, 0, (int)response.ContentLength);
+                fs = new MemoryStream(copyfsbytes,0, (int)response.ContentLength);
+                length = response.ContentLength;
 
                 p.writeSuccess("application/vnd.apple.mpegurl", response.ContentLength);
                 p.outputStream.Flush();
