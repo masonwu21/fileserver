@@ -10,3 +10,9 @@ E:\Work\fileserver\obj\Debug\SimpleHttpServer.pdb
 E:\Work\fileserver\bin\Debug\SimpleHttpServer.exe
 E:\Work\fileserver\bin\Debug\SimpleHttpServer.pdb
 E:\Work\fileserver\obj\Debug\SimpleHttpServer.csprojResolveAssemblyReference.cache
+D:\Work\fileserver\bin\Debug\SimpleHttpServer.exe.config
+D:\Work\fileserver\obj\Debug\SimpleHttpServer.exe
+D:\Work\fileserver\obj\Debug\SimpleHttpServer.pdb
+D:\Work\fileserver\bin\Debug\SimpleHttpServer.exe
+D:\Work\fileserver\bin\Debug\SimpleHttpServer.pdb
+D:\Work\fileserver\obj\Debug\SimpleHttpServer.csprojResolveAssemblyReference.cache
